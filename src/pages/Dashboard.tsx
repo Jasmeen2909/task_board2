@@ -35,7 +35,6 @@ export default function Dashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<StatusKey>("to-do");
   const [countryOptions, setCountryOptions] = useState<string[]>([]);
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   const {
     tasksByStatus,
@@ -61,6 +60,8 @@ export default function Dashboard() {
     fetchStatusWiseCounts,
     totalCountByStatus,
     statusKeyArray,
+    selectedCountries,
+    setSelectedCountries,
     hourlyBudgetType,
     setHourlyBudgetType,
     priceRange,
@@ -110,6 +111,7 @@ export default function Dashboard() {
     dateRange,
     searchQuery,
     limit,
+    selectedCountries,
   ]);
 
   useEffect(() => {
