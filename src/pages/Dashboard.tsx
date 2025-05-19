@@ -34,7 +34,6 @@ export default function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<StatusKey>("to-do");
-  const [countryOptions, setCountryOptions] = useState<string[]>([]);
 
   const {
     tasksByStatus,
@@ -62,6 +61,7 @@ export default function Dashboard() {
     statusKeyArray,
     selectedCountries,
     setSelectedCountries,
+    countryOptions,
     hourlyBudgetType,
     setHourlyBudgetType,
     priceRange,
@@ -191,28 +191,6 @@ export default function Dashboard() {
     };
 
     fetchCategoryData();
-  }, []);
-
-  useEffect(() => {
-    const fetchCountryData = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("projects")
-        .select("prospect_location_country");
-      if (!error && data) {
-        const uniqueCountries = Array.from(
-          new Set(
-            data
-              .map((row) => row.prospect_location_country)
-              .filter((c): c is string => typeof c === "string")
-          )
-        ).sort();
-        setCountryOptions(uniqueCountries);
-      }
-      setLoading(false);
-    };
-
-    fetchCountryData();
   }, []);
 
   const onDragEnd = async (event: DragEndEvent) => {

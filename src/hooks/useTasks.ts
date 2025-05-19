@@ -251,19 +251,18 @@ export function useTasks() {
 
   useEffect(() => {
     const fetchCountryOptions = async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("prospect_location_country");
+      const { data, error } = await supabase.rpc("get_distinct_countries");
 
       if (!error && data) {
-        const uniqueCountries = Array.from(
-          new Set(
-            data
-              .map((row) => row.prospect_location_country)
-              .filter((c): c is string => typeof c === "string")
-          )
-        ).sort();
+        const countries = data as string[];
+
+        const uniqueCountries = countries
+          .filter((c): c is string => typeof c === "string")
+          .sort((a, b) => a.localeCompare(b));
+
         setCountryOptions(uniqueCountries);
+      } else {
+        console.error("Error fetching countries:", error);
       }
     };
 
@@ -288,18 +287,19 @@ export function useTasks() {
       date_to: dateRange.to,
       search_query: searchQuery,
       country_filter: selectedCountries.length > 0 ? selectedCountries : null,
-      hourly_budget_type: hourlyBudgetType === "null"
-        ? "null"
-        : hourlyBudgetType?.toUpperCase() ?? null,
+      hourly_budget_type:
+        hourlyBudgetType === "null"
+          ? "null"
+          : hourlyBudgetType?.toUpperCase() ?? null,
       price_from: priceRange.from,
       price_to: priceRange.to,
     });
-  
+
     if (error) {
       console.error(`Count error for status ${status}:`, error);
       return 0;
     }
-  
+
     return data ?? 0;
   };
 
@@ -370,29 +370,30 @@ export function useTasks() {
       "in-progress": "In Progress",
       done: "Done",
     };
-  
+
     const currentState = stateRef.current;
     const existingCounts = { ...currentState.totalCountByStatus };
     const updatedCounts: Record<StatusKey, number> = { ...existingCounts };
-  
+
     const countPromises = statusKeyArray.map(async (key) => {
       const label = statusLabels[key];
-  
-      if (!currentState.statusFilter || currentState.statusFilter === label) {
-        const count = await getTaskCountByStatus(
-          label,
-          currentState.categoryFilter,
-          currentState.subcategoryFilter,
-          currentState.dateRange,
-          currentState.searchQuery,
-          currentState.selectedCountries,
-          currentState.hourlyBudgetType,
-          currentState.priceRange
-        );
-        updatedCounts[key] = count;
-      }
+      const isFilteredStatus =
+        !currentState.statusFilter || currentState.statusFilter === label;
+
+      const count = await getTaskCountByStatus(
+        label,
+        isFilteredStatus ? currentState.categoryFilter : null,
+        isFilteredStatus ? currentState.subcategoryFilter : null,
+        isFilteredStatus ? currentState.dateRange : { from: null, to: null },
+        isFilteredStatus ? currentState.searchQuery : null,
+        isFilteredStatus ? currentState.selectedCountries : [],
+        isFilteredStatus ? currentState.hourlyBudgetType : null,
+        isFilteredStatus ? currentState.priceRange : { from: null, to: null }
+      );
+
+      updatedCounts[key] = count;
     });
-  
+
     await Promise.all(countPromises);
     setTotalCountByStatus(updatedCounts);
   }, [setTotalCountByStatus]);
@@ -461,29 +462,13 @@ export function useTasks() {
             return { key, tasks, page };
           }
 
-          // const existingTasks = currentState.tasksByStatus[key];
-          // const newTasks = tasks.filter(
-          //   (newTask) =>
-          //     !existingTasks.some(
-          //       (existingTask) => existingTask.id === newTask.id
-          //     )
-          // );
-
-          // dispatch({
-          //   type: "UPDATE_TASKS_FOR_STATUS",
-          //   payload: {
-          //     status: key,
-          //     tasks: [...existingTasks, ...newTasks],
-          //   },
-          // });
-
           const existingTasks = currentState.tasksByStatus[key];
 
           dispatch({
             type: "UPDATE_TASKS_FOR_STATUS",
             payload: {
               status: key,
-              tasks: [...existingTasks, ...tasks], 
+              tasks: [...existingTasks, ...tasks],
             },
           });
 

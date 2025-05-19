@@ -60,6 +60,7 @@ export default function Discard() {
     fetchDiscardedTasks();
     getUser();
     fetchCategoryData();
+    fetchCountryOptions();
   }, [
     categoryFilter,
     subcategoryFilter,
@@ -131,28 +132,20 @@ export default function Discard() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    const fetchCountryData = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("projects")
-        .select("prospect_location_country");
+  const fetchCountryOptions = async () => {
+  setLoading(true);
+  const { data, error } = await supabase.rpc("get_distinct_countries");
 
-      if (!error && data) {
-        const uniqueCountries = Array.from(
-          new Set(
-            data
-              .map((row) => row.prospect_location_country)
-              .filter((c): c is string => typeof c === "string")
-          )
-        ).sort();
-        setCountryOptions(uniqueCountries);
-      }
-      setLoading(false);
-    };
+  if (!error && data) {
+    const countries = data as string[];
+    const uniqueCountries = countries
+      .filter((c): c is string => typeof c === "string")
+      .sort((a, b) => a.localeCompare(b));
+    setCountryOptions(uniqueCountries);
+  }
 
-    fetchCountryData();
-  }, []);
+  setLoading(false);
+};
 
   const fetchDiscardedTasks = async () => {
     setLoading(true);
