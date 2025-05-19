@@ -37,7 +37,6 @@ export default function Discard() {
     () => window.innerWidth >= 768
   );
 
-  // NEW FILTER STATES
   const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [hourlyBudgetType, setHourlyBudgetType] = useState<string | null>(null);

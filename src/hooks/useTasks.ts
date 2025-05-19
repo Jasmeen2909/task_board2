@@ -461,31 +461,31 @@ export function useTasks() {
             return { key, tasks, page };
           }
 
-          const existingTasks = currentState.tasksByStatus[key];
-          const newTasks = tasks.filter(
-            (newTask) =>
-              !existingTasks.some(
-                (existingTask) => existingTask.id === newTask.id
-              )
-          );
-
-          dispatch({
-            type: "UPDATE_TASKS_FOR_STATUS",
-            payload: {
-              status: key,
-              tasks: [...existingTasks, ...newTasks],
-            },
-          });
-
           // const existingTasks = currentState.tasksByStatus[key];
+          // const newTasks = tasks.filter(
+          //   (newTask) =>
+          //     !existingTasks.some(
+          //       (existingTask) => existingTask.id === newTask.id
+          //     )
+          // );
 
           // dispatch({
           //   type: "UPDATE_TASKS_FOR_STATUS",
           //   payload: {
           //     status: key,
-          //     tasks: [...existingTasks, ...tasks], 
+          //     tasks: [...existingTasks, ...newTasks],
           //   },
           // });
+
+          const existingTasks = currentState.tasksByStatus[key];
+
+          dispatch({
+            type: "UPDATE_TASKS_FOR_STATUS",
+            payload: {
+              status: key,
+              tasks: [...existingTasks, ...tasks], 
+            },
+          });
 
           dispatch({
             type: "SET_PAGE_BY_STATUS",
