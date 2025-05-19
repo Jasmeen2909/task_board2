@@ -30,20 +30,32 @@ type Action =
   | { type: "SET_STATUS_FILTER"; payload: string | null }
   | { type: "SET_CATEGORY_FILTER"; payload: string | null }
   | { type: "SET_SUBCATEGORY_FILTER"; payload: string | null }
-  | { type: "SET_DATE_RANGE"; payload: { from: string | null; to: string | null } }
+  | {
+      type: "SET_DATE_RANGE";
+      payload: { from: string | null; to: string | null };
+    }
   | { type: "SET_LIMIT"; payload: number | null }
   | { type: "SET_PAGE_BY_STATUS"; payload: { status: StatusKey; page: number } }
-  | { type: "SET_HAS_MORE_BY_STATUS"; payload: { status: StatusKey; hasMore: boolean } }
+  | {
+      type: "SET_HAS_MORE_BY_STATUS";
+      payload: { status: StatusKey; hasMore: boolean };
+    }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_SEARCH_QUERY"; payload: string | null }
   | { type: "SET_TOTAL_COUNT_BY_STATUS"; payload: Record<StatusKey, number> }
   | { type: "RESET_PAGINATION" }
   | { type: "SET_FILTERS_CHANGED"; payload: boolean }
-  | { type: "UPDATE_TASKS_FOR_STATUS"; payload: { status: StatusKey; tasks: Task[] } }
+  | {
+      type: "UPDATE_TASKS_FOR_STATUS";
+      payload: { status: StatusKey; tasks: Task[] };
+    }
   | { type: "SET_SELECTED_COUNTRIES"; payload: string[] }
   | { type: "SET_COUNTRY_OPTIONS"; payload: string[] }
   | { type: "SET_HOURLY_BUDGET_TYPE"; payload: string | null }
-  | { type: "SET_PRICE_RANGE"; payload: { from: number | null; to: number | null } };
+  | {
+      type: "SET_PRICE_RANGE";
+      payload: { from: number | null; to: number | null };
+    };
 
 const initialState: State = {
   tasksByStatus: {
@@ -97,7 +109,11 @@ function reducer(state: State, action: Action): State {
     case "SET_CATEGORY_FILTER":
       return { ...state, categoryFilter: action.payload, filtersChanged: true };
     case "SET_SUBCATEGORY_FILTER":
-      return { ...state, subcategoryFilter: action.payload, filtersChanged: true };
+      return {
+        ...state,
+        subcategoryFilter: action.payload,
+        filtersChanged: true,
+      };
     case "SET_DATE_RANGE":
       return { ...state, dateRange: action.payload, filtersChanged: true };
     case "SET_LIMIT":
@@ -134,11 +150,19 @@ function reducer(state: State, action: Action): State {
     case "SET_FILTERS_CHANGED":
       return { ...state, filtersChanged: action.payload };
     case "SET_SELECTED_COUNTRIES":
-      return { ...state, selectedCountries: action.payload, filtersChanged: true };
+      return {
+        ...state,
+        selectedCountries: action.payload,
+        filtersChanged: true,
+      };
     case "SET_COUNTRY_OPTIONS":
       return { ...state, countryOptions: action.payload };
     case "SET_HOURLY_BUDGET_TYPE":
-      return { ...state, hourlyBudgetType: action.payload, filtersChanged: true };
+      return {
+        ...state,
+        hourlyBudgetType: action.payload,
+        filtersChanged: true,
+      };
     case "SET_PRICE_RANGE":
       return { ...state, priceRange: action.payload, filtersChanged: true };
     default:
@@ -267,19 +291,12 @@ export function useTasks() {
         const effectiveLimit = filters.limit ?? PAGE_SIZE;
 
         let hourlyBudgetTypeParam: string | null = null;
-        
+
         if (filters.hourlyBudgetType) {
-          switch (filters.hourlyBudgetType) {
-            case "default":
-            case "manual":
-            case "not_provided":
-              hourlyBudgetTypeParam = filters.hourlyBudgetType;
-              break;
-            case "null":
-              hourlyBudgetTypeParam = "null";
-              break;
-            default:
-              hourlyBudgetTypeParam = null;
+          if (filters.hourlyBudgetType === "null") {
+            hourlyBudgetTypeParam = "null";
+          } else {
+            hourlyBudgetTypeParam = filters.hourlyBudgetType.toUpperCase();
           }
         }
 
@@ -362,19 +379,18 @@ export function useTasks() {
           }
 
           if (
-            currentState.hourlyBudgetType === "default" ||
-            currentState.hourlyBudgetType === "manual" ||
-            currentState.hourlyBudgetType === "not_provided"
+            currentState.hourlyBudgetType === "DEFAULT" ||
+            currentState.hourlyBudgetType === "MANUAL" ||
+            currentState.hourlyBudgetType === "NOT_PROVIDED"
           ) {
             query = query.eq("hourlyBudgetType", currentState.hourlyBudgetType);
           } else if (currentState.hourlyBudgetType === "null") {
             query = query.is("hourlyBudgetType", null);
           }
 
-          if (
-            currentState.hourlyBudgetType === "manual" ||
-            currentState.hourlyBudgetType === "default"
-          ) {
+          const normalizedType = currentState.hourlyBudgetType?.toUpperCase();
+
+          if (normalizedType === "MANUAL" || normalizedType === "DEFAULT") {
             if (currentState.priceRange.from !== null)
               query = query.gte(
                 "hourlyBudgetMin_rawValue",
@@ -387,7 +403,10 @@ export function useTasks() {
               );
           } else if (currentState.hourlyBudgetType === "null") {
             if (currentState.priceRange.from !== null)
-              query = query.gte("amount_rawValue", currentState.priceRange.from);
+              query = query.gte(
+                "amount_rawValue",
+                currentState.priceRange.from
+              );
             if (currentState.priceRange.to !== null)
               query = query.lte("amount_rawValue", currentState.priceRange.to);
           }
@@ -475,7 +494,9 @@ export function useTasks() {
           const existingTasks = currentState.tasksByStatus[key];
           const newTasks = tasks.filter(
             (newTask) =>
-              !existingTasks.some((existingTask) => existingTask.id === newTask.id)
+              !existingTasks.some(
+                (existingTask) => existingTask.id === newTask.id
+              )
           );
 
           dispatch({

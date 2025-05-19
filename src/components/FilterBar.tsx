@@ -272,9 +272,9 @@ export default function FilterBar({
         className="w-full md:w-40 border border-gray-300 px-3 py-2 rounded text-sm bg-white"
       >
         <option value="">Price Type</option>
-        <option value="default">Default</option>
-        <option value="manual">Manual</option>
-        <option value="not_provided">Not Provided</option>
+        <option value="DEFAULT">Default</option>
+        <option value="MANUAL">Manual</option>
+        <option value="NOT_PROVIDED">Not Provided</option>
         <option value="null">Null</option>
       </select>
 
