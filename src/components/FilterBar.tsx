@@ -278,7 +278,7 @@ export default function FilterBar({
         <option value="null">Null</option>
       </select>
 
-      {["default", "manual"].includes(hourlyBudgetType ?? "") && (
+      {["DEFAULT", "MANUAL"].includes(hourlyBudgetType ?? "") && (
         <div className="flex gap-2">
           <input
             type="number"
@@ -311,7 +311,7 @@ export default function FilterBar({
         <div className="flex gap-2">
           <input
             type="number"
-            placeholder="From (Fixed)"
+            placeholder="From"
             className="w-full md:w-32 border border-gray-300 px-3 py-2 rounded text-sm"
             value={priceRange.from ?? ""}
             onChange={(e) =>
@@ -323,7 +323,7 @@ export default function FilterBar({
           />
           <input
             type="number"
-            placeholder="To (Fixed)"
+            placeholder="To"
             className="w-full md:w-32 border border-gray-300 px-3 py-2 rounded text-sm"
             value={priceRange.to ?? ""}
             onChange={(e) =>

@@ -13,26 +13,38 @@ export default function Discard() {
   const [userEmail, setUserEmail] = useState("");
   const [discardedTasks, setDiscardedTasks] = useState<Task[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<{ from: string | null; to: string | null }>({
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | null>(
+    null
+  );
+  const [dateRange, setDateRange] = useState<{
+    from: string | null;
+    to: string | null;
+  }>({
     from: null,
     to: null,
   });
   const [limit, setLimit] = useState<number | null>(null);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
-  const [subcategoryMap, setSubcategoryMap] = useState<Record<string, string[]>>({});
+  const [subcategoryMap, setSubcategoryMap] = useState<
+    Record<string, string[]>
+  >({});
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { setLoading } = useLoader();
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => window.innerWidth >= 768
+  );
 
   // NEW FILTER STATES
-   const [countryOptions, setCountryOptions] = useState<string[]>([]);
+  const [countryOptions, setCountryOptions] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [hourlyBudgetType, setHourlyBudgetType] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<{ from: number | null; to: number | null }>({
+  const [priceRange, setPriceRange] = useState<{
+    from: number | null;
+    to: number | null;
+  }>({
     from: null,
     to: null,
   });
@@ -98,7 +110,9 @@ export default function Discard() {
 
   const fetchCategoryData = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("projects").select("category, subcategory");
+    const { data, error } = await supabase
+      .from("projects")
+      .select("category, subcategory");
     if (!error && data) {
       const map: Record<string, string[]> = {};
       const categories = new Set<string>();
@@ -119,28 +133,27 @@ export default function Discard() {
   };
 
   useEffect(() => {
-  const fetchCountryData = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("projects")
-      .select("prospect_location_country");
+    const fetchCountryData = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("projects")
+        .select("prospect_location_country");
 
-    if (!error && data) {
-      const uniqueCountries = Array.from(
-        new Set(
-          data
-            .map((row) => row.prospect_location_country)
-            .filter((c): c is string => typeof c === "string")
-        )
-      ).sort();
-      setCountryOptions(uniqueCountries);
-    }
-    setLoading(false);
-  };
+      if (!error && data) {
+        const uniqueCountries = Array.from(
+          new Set(
+            data
+              .map((row) => row.prospect_location_country)
+              .filter((c): c is string => typeof c === "string")
+          )
+        ).sort();
+        setCountryOptions(uniqueCountries);
+      }
+      setLoading(false);
+    };
 
-  fetchCountryData();
-}, []);
-
+    fetchCountryData();
+  }, []);
 
   const fetchDiscardedTasks = async () => {
     setLoading(true);
@@ -153,21 +166,31 @@ export default function Discard() {
     if (searchQuery) query = query.ilike("title", `%${searchQuery}%`);
     if (limit) query = query.limit(limit);
 
-    // APPLYING NEW FILTERS
     if (selectedCountries.length > 0) {
       query = query.in("prospect_location_country", selectedCountries);
     }
 
-    if (hourlyBudgetType === "default" || hourlyBudgetType === "manual") {
-      query = query.eq("hourly_budget_type", hourlyBudgetType);
-    } else if (hourlyBudgetType === "not_provided") {
-      query = query.is("hourly_budget_type", null);
-    } else if (hourlyBudgetType === "fixed") {
-      query = query.eq("hourly_budget_type", "fixed");
-    }
+    const normalizedType = hourlyBudgetType?.toUpperCase();
 
-    if (priceRange.from !== null) query = query.gte("price", priceRange.from);
-    if (priceRange.to !== null) query = query.lte("price", priceRange.to);
+    if (normalizedType === "DEFAULT" || normalizedType === "MANUAL") {
+      query = query.eq("hourlyBudgetType", normalizedType);
+      if (priceRange.from !== null) {
+        query = query.gte("hourlyBudgetMin_rawValue", priceRange.from);
+      }
+      if (priceRange.to !== null) {
+        query = query.lte("hourlyBudgetMax_rawValue", priceRange.to);
+      }
+    } else if (hourlyBudgetType === "null") {
+      query = query.is("hourlyBudgetType", null);
+      if (priceRange.from !== null) {
+        query = query.gte("amount_rawValue", priceRange.from);
+      }
+      if (priceRange.to !== null) {
+        query = query.lte("amount_displayValue", priceRange.to);
+      }
+    } else if (normalizedType === "NOT_PROVIDED") {
+      query = query.eq("hourlyBudgetType", "NOT_PROVIDED");
+    }
 
     const { data, error } = await query;
 
@@ -184,7 +207,11 @@ export default function Discard() {
   };
 
   return (
-    <div className={`flex min-h-screen ${sidebarOpen ? "overflow-hidden" : "overflow-x-auto"}`}>
+    <div
+      className={`flex min-h-screen ${
+        sidebarOpen ? "overflow-hidden" : "overflow-x-auto"
+      }`}
+    >
       <Sidebar
         sidebarOpen={sidebarOpen}
         userEmail={userEmail}

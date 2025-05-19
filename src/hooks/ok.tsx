@@ -685,3 +685,4 @@ export function useTasks() {
     setPriceRange,
   };
 }
+
