@@ -454,7 +454,7 @@ export function useTasks() {
 
           const tasks = await fetchTasksByStatus(label, {
             ...filtered,
-            limit: PAGE_SIZE,
+            limit: currentState.limit ?? PAGE_SIZE,
             offset,
           });
 

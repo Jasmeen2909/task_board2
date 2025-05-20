@@ -114,13 +114,15 @@ export default function FilterBar({
   }, [dateRange]);
 
   useEffect(() => {
-    if (
-      categoryFilter &&
+    if (!categoryFilter) {
+      setSubcategoryFilter(null);
+    } else if (
       !subcategoryMap[categoryFilter]?.includes(subcategoryFilter || "")
     ) {
-      if (subcategoryFilter !== null) setSubcategoryFilter(null);
+      setSubcategoryFilter(null);
     }
-  }, [categoryFilter, subcategoryMap, subcategoryFilter]);
+  }, [categoryFilter, subcategoryMap, subcategoryFilter, setSubcategoryFilter]);
+  
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -129,6 +131,14 @@ export default function FilterBar({
 
     return () => clearTimeout(delay);
   }, [searchInput, setSearchQuery]);
+
+  useEffect(() => {
+    if (!hourlyBudgetType || hourlyBudgetType === "") {
+      setPriceRange({ from: null, to: null });
+      setHourlyBudgetType(null);
+    }
+  }, [hourlyBudgetType, setHourlyBudgetType]);
+  
 
   const formatDateDisplay = (date: Date | null) => {
     if (!date) return "";
@@ -251,15 +261,18 @@ export default function FilterBar({
               <p className="text-sm text-gray-500">No countries found</p>
             ) : (
               filteredCountries.map((country) => (
-                <div key={country} className="flex items-center">
+                <label
+                  key={country}
+                  className="flex items-center cursor-pointer text-sm space-x-2"
+                >
                   <input
                     type="checkbox"
                     checked={selectedCountries.includes(country)}
                     onChange={() => toggleCountry(country)}
                     className="mr-2"
                   />
-                  <label className="text-sm">{country}</label>
-                </div>
+                  <span>{country}</span>
+                </label>
               ))
             )}
           </div>
@@ -275,7 +288,7 @@ export default function FilterBar({
         <option value="DEFAULT">Default</option>
         <option value="MANUAL">Manual</option>
         <option value="NOT_PROVIDED">Not Provided</option>
-        <option value="null">Null</option>
+        <option value="null">Fixed</option>
       </select>
 
       {["DEFAULT", "MANUAL"].includes(hourlyBudgetType ?? "") && (
@@ -441,7 +454,6 @@ export default function FilterBar({
         value={limit ?? ""}
       >
         <option value="">Limit</option>
-        <option value="10">10</option>
         <option value="20">20</option>
         <option value="30">30</option>
         <option value="50">50</option>

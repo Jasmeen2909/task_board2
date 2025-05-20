@@ -73,64 +73,68 @@ export default function TaskDetailsModal({
 
   useEffect(() => {
     if (!taskId || !isOpen) return;
-
+  
     const channel = supabase
       .channel("realtime-comments")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "comments",
+          filter: `task_id=eq.${taskId}`,
         },
-        (payload) => {
-          if (
-            (payload.eventType === "INSERT" &&
-              payload.new?.task_id == taskId) ||
-            (payload.eventType === "UPDATE" &&
-              payload.new?.task_id == taskId) ||
-            payload.eventType === "DELETE"
-          ) {
-            fetchComments();
-            return;
-          }
-          const affectedTaskId =
-            (payload.new as any)?.task_id || (payload.old as any)?.task_id;
-          if (affectedTaskId === taskId) {
-            fetchComments();
-          }
-        }
+        () => fetchComments()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "comments",
+          filter: `task_id=eq.${taskId}`,
+        },
+        () => fetchComments()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "comments",
+          filter: `task_id=eq.${taskId}`,
+        },
+        () => fetchComments()
       )
       .subscribe();
-
+  
     return () => {
       supabase.removeChannel(channel);
     };
   }, [taskId, isOpen]);
-
+  
   useEffect(() => {
     if (!taskId || !isOpen) return;
-
+  
     const channel = supabase
       .channel("realtime-task-details")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
           schema: "public",
           table: "projects",
           filter: `id=eq.${taskId}`,
         },
-        () => {
-          fetchTaskDetails();
-        }
+        () => fetchTaskDetails()
       )
       .subscribe();
-
+  
     return () => {
       supabase.removeChannel(channel);
     };
   }, [taskId, isOpen]);
+  
 
   const fetchTaskDetails = async () => {
     setLoading(true);

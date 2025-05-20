@@ -67,7 +67,7 @@ export default function Discard() {
     dateRange,
     limit,
     searchQuery,
-    selectedCountries,
+    selectedCountries, 
     hourlyBudgetType,
     priceRange,
   ]);
@@ -78,20 +78,15 @@ export default function Discard() {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "UPDATE",
           schema: "public",
           table: "projects",
+          filter: "status=eq.Discarded",
         },
-        (payload) => {
-          const status =
-            (payload.new as any)?.status || (payload.old as any)?.status;
-          if (status === "Discarded") {
-            fetchDiscardedTasks();
-          }
-        }
+        () => fetchDiscardedTasks()
       )
       .subscribe();
-
+  
     return () => {
       supabase.removeChannel(channel);
     };
