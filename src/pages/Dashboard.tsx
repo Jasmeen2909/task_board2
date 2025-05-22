@@ -19,6 +19,7 @@ import { Task } from "../types/tasks";
 import TaskDetailsModal from "../components/TasksDetailsModal";
 import LogoutConfirmDialog from "../components/Logout";
 import { useLoader } from "../context/LoaderContext";
+  import { fetchCategoryData } from "../services/taskService";
 
 export default function Dashboard() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -165,32 +166,14 @@ export default function Dashboard() {
   }, [activeMobileTab]);
 
   useEffect(() => {
-    const fetchCategoryData = async () => {
+    const loadCategoryData = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("projects")
-        .select("category, subcategory");
-
-      if (!error && data) {
-        const map: Record<string, string[]> = {};
-        const categories = new Set<string>();
-
-        data.forEach((row) => {
-          if (!row.category) return;
-          categories.add(row.category);
-          if (!map[row.category]) map[row.category] = [];
-          if (row.subcategory && !map[row.category].includes(row.subcategory)) {
-            map[row.category].push(row.subcategory);
-          }
-        });
-
-        setCategoryOptions(Array.from(categories));
-        setSubcategoryMap(map);
-      }
+      const { categoryOptions, subcategoryMap } = await fetchCategoryData();
+      setCategoryOptions(categoryOptions);
+      setSubcategoryMap(subcategoryMap);
       setLoading(false);
     };
-
-    fetchCategoryData();
+    loadCategoryData();
   }, []);
 
   const onDragEnd = async (event: DragEndEvent) => {

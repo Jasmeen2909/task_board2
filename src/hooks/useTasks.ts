@@ -659,6 +659,7 @@ export function useTasks() {
     searchQuery: state.searchQuery,
     setSearchQuery,
     fetchStatusWiseCounts,
+    fetchTasksByStatus,
     totalCountByStatus: state.totalCountByStatus,
     statusKeyArray,
     selectedCountries: state.selectedCountries,
