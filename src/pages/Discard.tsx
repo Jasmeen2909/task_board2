@@ -25,12 +25,14 @@ export default function Discard() {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 768
   );
-  const [discardPage, setDiscardPage] = useState(0);
+
   const [hasMoreDiscard, setHasMoreDiscard] = useState(true);
   const PAGE_SIZE = 10;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [loadingDiscard, setLoadingDiscard] = useState(false);
   const [discardCount, setDiscardCount] = useState(0);
+  const discardPageRef = useRef(0);
+  const loadingDiscardRef = useRef(false);
 
   const {
     categoryFilter,
@@ -82,27 +84,29 @@ export default function Discard() {
   }, [hasMoreDiscard, loadingDiscard]);
 
   useEffect(() => {
-    const runFilterUpdate = async () => {
-      setLoading(true); // Global loader ON
-      setDiscardPage(0);
-      setHasMoreDiscard(true);
-      await fetchDiscardedTasks(true);
-      await fetchDiscardCount();
-      setLoading(false); // Global loader OFF
-    };
+  const runFilterUpdate = async () => {
+    setLoading(true);
+    discardPageRef.current = 0; 
+    setDiscardedTasks([]); 
+    setHasMoreDiscard(true);
+    await fetchDiscardedTasks(true);
+    await fetchDiscardCount();
+    setLoading(false);
+  };
 
-    runFilterUpdate();
-    getUser(); // no need to wait for this
-  }, [
-    categoryFilter,
-    subcategoryFilter,
-    dateRange,
-    limit,
-    searchQuery,
-    selectedCountries,
-    hourlyBudgetType,
-    priceRange,
-  ]);
+  runFilterUpdate();
+  getUser();
+}, [
+  categoryFilter,
+  subcategoryFilter,
+  dateRange,
+  limit, 
+  searchQuery,
+  selectedCountries,
+  hourlyBudgetType,
+  priceRange,
+]);
+
 
   useEffect(() => {
     const loadCategoryData = async () => {
@@ -159,9 +163,12 @@ export default function Discard() {
   };
 
   const fetchDiscardedTasks = async (reset = false) => {
+    if (loadingDiscardRef.current) return;
+
+    loadingDiscardRef.current = true;
     setLoadingDiscard(true);
 
-    const page = reset ? 0 : discardPage;
+    const page = reset ? 0 : discardPageRef.current;
     const effectiveLimit = limit ?? PAGE_SIZE;
     const offset = page * effectiveLimit;
 
@@ -180,18 +187,22 @@ export default function Discard() {
 
     if (reset) {
       setDiscardedTasks(data);
-      setDiscardPage(1);
+      discardPageRef.current = 1;
     } else {
       setDiscardedTasks((prev) => {
         const existingIds = new Set(prev.map((t) => t.id));
         const filtered = data.filter((t) => !existingIds.has(t.id));
         return [...prev, ...filtered];
       });
-      setDiscardPage((prev) => prev + 1);
+
+      if (data.length > 0) {
+        discardPageRef.current += 1;
+      }
     }
 
     setHasMoreDiscard(data.length === effectiveLimit);
     setLoadingDiscard(false);
+    loadingDiscardRef.current = false;
   };
 
   const fetchDiscardCount = async () => {
@@ -320,10 +331,9 @@ export default function Discard() {
                   onStatusChange={(updatedTask) => {
                     if (updatedTask.status !== "Discarded") {
                       setModalOpen(false);
-                      setDiscardPage(0); // Reset page
-                      setDiscardedTasks([]); // Clear stale list
-                      fetchDiscardedTasks(true); // Reload from page 0
-                      fetchDiscardCount(); // Update count
+                      setDiscardedTasks([]);
+                      fetchDiscardedTasks(true);
+                      fetchDiscardCount();
                     }
                   }}
                 />
