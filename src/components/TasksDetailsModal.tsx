@@ -38,6 +38,7 @@ export default function TaskDetailsModal({
     null
   );
   const { setLoading } = useLoader();
+  const [loadingTask, setLoadingTask] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -73,7 +74,7 @@ export default function TaskDetailsModal({
 
   useEffect(() => {
     if (!taskId || !isOpen) return;
-  
+
     const channel = supabase
       .channel("realtime-comments")
       .on(
@@ -107,15 +108,15 @@ export default function TaskDetailsModal({
         () => fetchComments()
       )
       .subscribe();
-  
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [taskId, isOpen]);
-  
+
   useEffect(() => {
     if (!taskId || !isOpen) return;
-  
+
     const channel = supabase
       .channel("realtime-task-details")
       .on(
@@ -129,20 +130,21 @@ export default function TaskDetailsModal({
         () => fetchTaskDetails()
       )
       .subscribe();
-  
+
     return () => {
       supabase.removeChannel(channel);
     };
   }, [taskId, isOpen]);
-  
 
   const fetchTaskDetails = async () => {
-    setLoading(true);
+    setLoadingTask(true);
     const { data, error } = await supabase.rpc("get_task_detail", {
       task_id: taskId,
     });
-    if (!error && data && data.length > 0) setTask(data[0]);
-    setLoading(false);
+    if (!error && data && data.length > 0) {
+      setTask(data[0]);
+    }
+    setLoadingTask(false);
   };
 
   const formatDateToIST = (dateStr: string) => {
@@ -329,7 +331,13 @@ export default function TaskDetailsModal({
         </div>
       ));
 
-  if (!task) return null;
+  if (loadingTask || !task) {
+    return (
+      <div className="fixed inset-0 z-50 backdrop-blur-sm flex justify-center items-center">
+        <div className="w-12 h-12 border-4 border-red border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Transition appear show={isOpen}>

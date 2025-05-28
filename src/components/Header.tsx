@@ -7,6 +7,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { Dispatch, SetStateAction } from "react";
 import Logo from "../assets/img/Logo.png";
+import { useEffect, useRef } from "react";
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -25,6 +26,24 @@ export default function Header({
   setDropdownOpen,
   handleLogout,
 }: HeaderProps) {
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setDropdownOpen]);
+
   return (
     <header
       className={`flex items-center justify-between bg-white px-4 py-2 fixed top-0 right-0 z-30 h-14
@@ -40,7 +59,7 @@ export default function Header({
         <img src={Logo} alt="Logo" className="h-6" />
       </div>
 
-      <div className="relative hidden md:block">
+      <div className="relative hidden md:block" ref={dropdownRef}>
         <div
           className="flex items-center gap-2 cursor-pointer px-2 py-1 rounded hover:bg-gray-100"
           onClick={() => setDropdownOpen(!dropdownOpen)}

@@ -421,12 +421,14 @@ export function useTasks() {
       if (!shouldLoadMore && !reset) return;
 
       setLoading(true);
+      const effectiveLimit = currentState.limit ?? PAGE_SIZE;
 
       try {
         const fetchPromises = statuses.map(async (key) => {
           const label = statusKeyToStatusLabel(key);
           const page = reset ? 0 : currentState.pageByStatus[key];
-          const offset = page * PAGE_SIZE;
+          
+          const offset = page * effectiveLimit;
 
           const shouldApplyFilters =
             !currentState.statusFilter || currentState.statusFilter === label;
@@ -479,7 +481,7 @@ export function useTasks() {
 
           dispatch({
             type: "SET_HAS_MORE_BY_STATUS",
-            payload: { status: key, hasMore: tasks.length === PAGE_SIZE },
+            payload: { status: key, hasMore: tasks.length === effectiveLimit },
           });
 
           return { key, tasks, page };
@@ -502,7 +504,7 @@ export function useTasks() {
             });
             dispatch({
               type: "SET_HAS_MORE_BY_STATUS",
-              payload: { status: key, hasMore: tasks.length === PAGE_SIZE },
+              payload: { status: key, hasMore: tasks.length === effectiveLimit },
             });
           });
 
@@ -669,5 +671,6 @@ export function useTasks() {
     setHourlyBudgetType,
     priceRange: state.priceRange,
     setPriceRange,
+    getTaskCountByStatus,
   };
 }

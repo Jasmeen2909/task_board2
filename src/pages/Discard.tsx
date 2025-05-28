@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
@@ -25,18 +25,33 @@ export default function Discard() {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 768
   );
+  const [discardPage, setDiscardPage] = useState(0);
+  const [hasMoreDiscard, setHasMoreDiscard] = useState(true);
+  const PAGE_SIZE = 10;
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [loadingDiscard, setLoadingDiscard] = useState(false);
+  const [discardCount, setDiscardCount] = useState(0);
 
   const {
-    categoryFilter, setCategoryFilter,
-    subcategoryFilter, setSubcategoryFilter,
-    dateRange, setDateRange,
-    limit, setLimit,
-    searchQuery, setSearchQuery,
-    selectedCountries, setSelectedCountries,
-    hourlyBudgetType, setHourlyBudgetType,
-    priceRange, setPriceRange,
+    categoryFilter,
+    setCategoryFilter,
+    subcategoryFilter,
+    setSubcategoryFilter,
+    dateRange,
+    setDateRange,
+    limit,
+    setLimit,
+    searchQuery,
+    setSearchQuery,
+    selectedCountries,
+    setSelectedCountries,
+    hourlyBudgetType,
+    setHourlyBudgetType,
+    priceRange,
+    setPriceRange,
     countryOptions,
     fetchTasksByStatus,
+    getTaskCountByStatus,
   } = useTasks();
 
   useEffect(() => {
@@ -48,8 +63,36 @@ export default function Discard() {
   }, []);
 
   useEffect(() => {
-    fetchDiscardedTasks();
-    getUser();
+    const scrollEl = scrollRef.current;
+
+    const handleScroll = () => {
+      if (
+        scrollEl &&
+        scrollEl.scrollTop + scrollEl.clientHeight >=
+          scrollEl.scrollHeight - 300 &&
+        hasMoreDiscard &&
+        !loadingDiscard
+      ) {
+        fetchDiscardedTasks();
+      }
+    };
+
+    scrollEl?.addEventListener("scroll", handleScroll);
+    return () => scrollEl?.removeEventListener("scroll", handleScroll);
+  }, [hasMoreDiscard, loadingDiscard]);
+
+  useEffect(() => {
+    const runFilterUpdate = async () => {
+      setLoading(true); // Global loader ON
+      setDiscardPage(0);
+      setHasMoreDiscard(true);
+      await fetchDiscardedTasks(true);
+      await fetchDiscardCount();
+      setLoading(false); // Global loader OFF
+    };
+
+    runFilterUpdate();
+    getUser(); // no need to wait for this
   }, [
     categoryFilter,
     subcategoryFilter,
@@ -78,12 +121,28 @@ export default function Discard() {
       .on(
         "postgres_changes",
         {
+          event: "INSERT",
+          schema: "public",
+          table: "projects",
+          filter: "status=eq.Discarded",
+        },
+        () => {
+          fetchDiscardedTasks();
+          fetchDiscardCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "UPDATE",
           schema: "public",
           table: "projects",
           filter: "status=eq.Discarded",
         },
-        () => fetchDiscardedTasks()
+        () => {
+          fetchDiscardedTasks();
+          fetchDiscardCount();
+        }
       )
       .subscribe();
 
@@ -99,22 +158,55 @@ export default function Discard() {
     if (user) setUserEmail(user.email ?? "");
   };
 
-  const fetchDiscardedTasks = async () => {
-  setLoading(true);
-  const data = await fetchTasksByStatus("Discarded", {
-    categoryFilter,
-    subcategoryFilter,
-    dateRange,
-    limit,
-    searchQuery,
-    selectedCountries,
-    hourlyBudgetType,
-    priceFrom: priceRange.from,
-    priceTo: priceRange.to,
-  });
-  setDiscardedTasks(data);
-  setLoading(false);
-};
+  const fetchDiscardedTasks = async (reset = false) => {
+    setLoadingDiscard(true);
+
+    const page = reset ? 0 : discardPage;
+    const effectiveLimit = limit ?? PAGE_SIZE;
+    const offset = page * effectiveLimit;
+
+    const data = await fetchTasksByStatus("Discarded", {
+      categoryFilter,
+      subcategoryFilter,
+      dateRange,
+      limit: effectiveLimit,
+      offset,
+      searchQuery,
+      selectedCountries,
+      hourlyBudgetType,
+      priceFrom: priceRange.from,
+      priceTo: priceRange.to,
+    });
+
+    if (reset) {
+      setDiscardedTasks(data);
+      setDiscardPage(1);
+    } else {
+      setDiscardedTasks((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const filtered = data.filter((t) => !existingIds.has(t.id));
+        return [...prev, ...filtered];
+      });
+      setDiscardPage((prev) => prev + 1);
+    }
+
+    setHasMoreDiscard(data.length === effectiveLimit);
+    setLoadingDiscard(false);
+  };
+
+  const fetchDiscardCount = async () => {
+    const count = await getTaskCountByStatus(
+      "Discarded",
+      categoryFilter,
+      subcategoryFilter,
+      dateRange,
+      searchQuery,
+      selectedCountries,
+      hourlyBudgetType,
+      priceRange
+    );
+    setDiscardCount(count);
+  };
 
   const handleLogout = () => setShowLogoutConfirm(true);
   const confirmLogout = async () => {
@@ -152,7 +244,7 @@ export default function Discard() {
           handleLogout={handleLogout}
         />
 
-        <div className="flex-1 flex flex-col p-6 bg-gray-100 mt-10 min-h-0">
+        <div className="flex-1 flex flex-col p-6 bg-gray-100 mt-10 min-h-0 w-full">
           <h1 className="font-bold text-2xl mb-2">Discard</h1>
 
           <div className="bg-gray-100 sticky top-20 z-10">
@@ -182,21 +274,25 @@ export default function Discard() {
           <div className="bg-white rounded-lg shadow p-4 flex flex-col">
             <div className="font-semibold mb-4 flex items-center text-red-500">
               <span className="w-3 h-3 bg-red-500 rounded-full mr-2" />
-              Discard
+              <span className="text-black">
+                Discard ({discardedTasks.length} of {discardCount})
+              </span>
             </div>
 
             <div
+              ref={scrollRef}
               className="space-y-3 overflow-y-auto pr-2"
               style={{
                 maxHeight:
                   window.innerWidth < 768
                     ? "calc(100vh - 260px)"
                     : "calc(100vh - 260px)",
+                overflowY: "scroll",
               }}
             >
-              {discardedTasks.map((task) => (
+              {discardedTasks.map((task, index) => (
                 <div
-                  key={task.id}
+                  key={`${task.id}-${index}`}
                   className="border border-gray-300 p-4 rounded bg-white shadow-sm cursor-pointer hover:shadow"
                   onClick={() => {
                     setSelectedTaskId(task.id.toString());
@@ -210,12 +306,26 @@ export default function Discard() {
                 </div>
               ))}
 
+              {loadingDiscard && (
+                <p className="text-center py-2 text-gray-500">
+                  Loading more tasks...
+                </p>
+              )}
+
               {selectedTaskId && (
                 <TaskDetailsModal
                   taskId={selectedTaskId}
                   isOpen={modalOpen}
                   onClose={() => setModalOpen(false)}
-                  onStatusChange={fetchDiscardedTasks}
+                  onStatusChange={(updatedTask) => {
+                    if (updatedTask.status !== "Discarded") {
+                      setModalOpen(false);
+                      setDiscardPage(0); // Reset page
+                      setDiscardedTasks([]); // Clear stale list
+                      fetchDiscardedTasks(true); // Reload from page 0
+                      fetchDiscardCount(); // Update count
+                    }
+                  }}
                 />
               )}
             </div>

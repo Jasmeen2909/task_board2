@@ -122,7 +122,6 @@ export default function FilterBar({
       setSubcategoryFilter(null);
     }
   }, [categoryFilter, subcategoryMap, subcategoryFilter, setSubcategoryFilter]);
-  
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -138,7 +137,6 @@ export default function FilterBar({
       setHourlyBudgetType(null);
     }
   }, [hourlyBudgetType, setHourlyBudgetType]);
-  
 
   const formatDateDisplay = (date: Date | null) => {
     if (!date) return "";
@@ -246,7 +244,11 @@ export default function FilterBar({
                 onChange={toggleSelectAll}
                 className="mr-2"
               />
-              <span className="text-sm font-medium">Select All</span>
+              <span className="text-sm font-medium">
+                {selectedCountries.length === countryOptions.length
+                  ? "Unselect All"
+                  : "Select All"}
+              </span>
             </div>
 
             <input

@@ -407,6 +407,8 @@ export default function Dashboard() {
                     .replace(" ", "-");
                   if (statusKeyArray.includes(newStatus as any)) {
                     updated[newStatus as StatusKey].unshift(updatedTask);
+                  }else{
+                    setModalOpen(false);
                   }
                   setTasksByStatus(updated);
                   await fetchStatusWiseCounts();
