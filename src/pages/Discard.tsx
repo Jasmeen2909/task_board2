@@ -120,40 +120,61 @@ export default function Discard() {
   }, []);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("realtime-discarded-projects")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "projects",
-          filter: "status=eq.Discarded",
-        },
-        () => {
-          fetchDiscardedTasks();
-          fetchDiscardCount();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "projects",
-          filter: "status=eq.Discarded",
-        },
-        () => {
-          fetchDiscardedTasks();
-          fetchDiscardCount();
-        }
-      )
-      .subscribe();
+  const channel = supabase
+    .channel("realtime-discarded-projects")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "projects",
+        filter: "status=eq.Discarded",
+      },
+      () => {
+        fetchDiscardedTasks(true);
+        fetchDiscardCount();
+      }
+    )
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "projects",
+        filter: "status=eq.Discarded",
+      },
+      () => {
+        fetchDiscardedTasks(true);
+        fetchDiscardCount();
+      }
+    )
+
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "projects",
+      },
+      (payload) => {
+        const oldStatus = payload.old?.status;
+        const newStatus = payload.new?.status;
+
+        if (oldStatus === "Discarded" && newStatus !== "Discarded") {
+          fetchDiscardedTasks(true);
+          fetchDiscardCount();
+        }
+      }
+    )
+
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
+
 
   const getUser = async () => {
     const {
