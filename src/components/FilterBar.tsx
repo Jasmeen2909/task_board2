@@ -237,19 +237,24 @@ export default function FilterBar({
 
         {countryDropdownOpen && (
           <div className="absolute z-50 mt-2 w-full max-h-64 overflow-y-auto bg-white border border-gray-300 rounded shadow-md p-3 space-y-2">
-            <div className="flex items-center">
+            <label className="flex items-center cursor-pointer text-sm font-medium space-x-2">
               <input
                 type="checkbox"
                 checked={selectedCountries.length === countryOptions.length}
                 onChange={toggleSelectAll}
                 className="mr-2"
               />
-              <span className="text-sm font-medium">
+              <span
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent default label-click checkbox toggle
+                  toggleSelectAll();
+                }}
+              >
                 {selectedCountries.length === countryOptions.length
                   ? "Unselect All"
                   : "Select All"}
               </span>
-            </div>
+            </label>
 
             <input
               type="text"
